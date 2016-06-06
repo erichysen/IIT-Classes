@@ -22,6 +22,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+//MP1 Additions
+int start_burst(void);
+int end_burst(void);
+int print_bursts(void);
+//End MP1 Additions
 
 // ulib.c
 int stat(char*, struct stat*);

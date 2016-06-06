@@ -69,6 +69,14 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  
+  //mp1 additions
+  int sys_start_burst(void);
+  p->index = 0;
+  p->initial_burst = sys_start_burst();
+  memset(p->burst_array,0,sizeof(int)*100);
+  int sys_uptime(void);  
+  //end mp1 additions
 
   return p;
 }

@@ -98,6 +98,11 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+//MP1 Additions
+extern int sys_start_burst(void);
+extern int sys_end_burst(void);
+extern int sys_print_bursts(void);
+//End MP1 Additions
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -121,11 +126,32 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+//MP1 Additions
+[SYS_start_burst] sys_start_burst,
+[SYS_end_burst]   sys_end_burst,
+[SYS_print_bursts] sys_print_bursts,
+//End MP1 Additions
+
 };
 
 void
 syscall(void)
 {
+	//MP1 Additions 
+	//location that allows for each syscall to modify burst time
+	int starttime = proc->initial_burst;
+	int addtime = sys_end_burst() - starttime;
+		if(addtime != 0){
+			proc->burst_array[proc->index] = addtime;
+			proc->index++;
+		}
+	if(proc->index>=100){
+		proc->index = 0; //if array is full, populates with zero.
+	}
+
+
+
+//End MP1 Additions
   int num;
 
   num = proc->tf->eax;
@@ -136,4 +162,5 @@ syscall(void)
             proc->pid, proc->name, num);
     proc->tf->eax = -1;
   }
+  proc->initial_burst = sys_start_burst();  //MP1 addition: store time after syscall
 }

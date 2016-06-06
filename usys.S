@@ -29,3 +29,8 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+//MP1 Additions
+SYSCALL(start_burst)
+SYSCALL(end_burst)
+SYSCALL(print_bursts)
+//End MP1 Additions

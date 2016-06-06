@@ -66,6 +66,12 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  //MP1 additions
+  int burst_array[100];        //stores bursts
+  int index;                   //location of bursts in burst_array
+  int initial_burst;           //stores initial burst_array
+  int init_burst;              //store burst when process starts
+  //end mp1 additions
 };
 
 // Process memory is laid out contiguously, low addresses first:

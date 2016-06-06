@@ -88,3 +88,27 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//MP1 Additions
+int
+sys_start_burst(void){
+	int sb = sys_uptime();
+	return sb;
+}
+int
+sys_end_burst(void){
+	int eb = sys_uptime();
+	return eb;
+}
+int 
+sys_print_bursts(void){
+	int i;
+	for (i=0; i<100; i++){
+		if(proc->burst_array[i] !=0x00){
+			cprintf("%d,", proc->burst_array[i]); //print bursts
+		}
+	}
+	cprintf("\n");
+	return 0;
+}
+//end mp1 additions

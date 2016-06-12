@@ -75,7 +75,8 @@ found:
   p->index = 0;
   p->initial_burst = sys_start_burst();
   memset(p->burst_array,0,sizeof(int)*100);
-  int sys_uptime(void);  
+  int sys_uptime(void);        
+  p->turn_burst = sys_uptime();  //init burst for turnaround calculation
   //end mp1 additions
 
   return p;
@@ -262,21 +263,37 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+
+int 
+RRorSRTF(struct proc *p){
+	if(p->index<3 && p->burst_array[3]==0x00){ return 1;} //true for RR (check description below)
+	else{ return 0;} //false for SRTF
+	
+	/*If there are less than three previous bursts recorded 
+	(like when the process has just begun running), you should fall back to the 
+	default method of scheduling (RR). Only when there are three or more previous 
+	bursts for you to calculate an average from should you schedule based on which 
+	has the shortest average.
+	*/
+}
+
 void
 scheduler(void)
 {
+	int mode, average_max;
   struct proc *p;
 
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
+	average_max = 32767; //temp average var
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+	mode = RRorSRTF(p);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-
+	  if(mode == 1){ //RR sched
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
@@ -289,6 +306,40 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       proc = 0;
+	  }
+	  else     //SRTF
+	  {
+		  struct proc *p_min;
+		  int count = 3;
+		  int idx, avg;
+		  int sum = 0;
+		  for(idx = p->index; count>=0; idx--, count--)
+		  {
+			  if(idx == -1)
+			  {
+				  idx = 100;
+			  }
+			  sum = p->burst_array[idx];
+		  }
+		  avg = sum/3;
+		  if(avg<average_max){
+			  average_max = avg;
+			  p_min = p;
+		  }
+		  // Switch to chosen process.  It is the process's job
+		  // to release ptable.lock and then reacquire it
+		  // before jumping back to us.
+		  if(p_min->state == RUNNABLE){
+			  proc = p_min;
+			  switchuvm(p_min);
+			  p_min->state = RUNNING;
+			  swtch(&cpu->scheduler, proc->context);
+			  switchkvm();
+		  }
+		  // Process is done running for now.
+		  // It should have changed its p_min->state before coming back.
+		  proc = 0;
+	  }
     }
     release(&ptable.lock);
 

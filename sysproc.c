@@ -108,6 +108,7 @@ sys_print_bursts(void){
 			cprintf("%d,", proc->burst_array[i]); //print bursts
 		}
 	}
+	cprintf ("Turnaround Time:%d", sys_end_burst() - proc->turn_burst); // print turnaround time
 	cprintf("\n");
 	return 0;
 }

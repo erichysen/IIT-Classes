@@ -70,7 +70,7 @@ struct proc {
   int burst_array[100];        //stores bursts
   int index;                   //location of bursts in burst_array
   int initial_burst;           //stores initial burst_array
-  int init_burst;              //store burst when process starts
+  int turn_burst;              //store burst when process starts for turnaround time
   //end mp1 additions
 };
 

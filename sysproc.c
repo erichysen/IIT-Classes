@@ -113,3 +113,46 @@ sys_print_bursts(void){
 	return 0;
 }
 //end mp1 additions
+
+// mp2 additions
+int
+sys_thread_create(void)
+{
+	//(void*)tmain
+	char *tmain, *stack, *arg;
+	argptr(0,&tmain,1);  //line 45 syscall.c
+	argptr(1,&stack,0);
+	argptr(2,&arg,0);
+	return thread_create((void*)tmain, (void*)stack, (void*)arg);
+}
+
+int
+sys_thread_join(void)
+{
+	char *stack;
+	argptr(0,&stack,1);
+	return thread_join((void**)stack);
+}
+
+int 
+sys_mtx_create(void)
+{
+	int locked;
+	argint(0,&locked);
+	return mtx_lock(locked);
+}
+int
+sys_mtx_lock(void)
+{
+	int lock_id;
+	argint(0,&lock_id);
+	return mtx_lock(lock_id);
+}
+int
+sys_mtx_unlock(void)
+{
+	int lock_id;
+	argint(0,&lock_id);
+	return mtx_unlock(lock_id);
+}
+//end mp2 additions

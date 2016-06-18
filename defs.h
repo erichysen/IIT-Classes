@@ -177,5 +177,19 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
+//mp2 additions
+//sysproc.c
+int             thread_create(void (*tmain)(void *), void *stack, void *arg);
+int             thread_join(void **stack);
+int             mtx_create(int locked);
+int             mtx_lock(int lock_id);
+int             mtx_unlock(int lock_id);
+//spinlock.c
+void            l_acquire(struct spinlock*); //similar to acquire/release 
+void            l_release(struct spinlock*);
+//end mp2 additions
+
+
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

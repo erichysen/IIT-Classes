@@ -34,3 +34,10 @@ SYSCALL(start_burst)
 SYSCALL(end_burst)
 SYSCALL(print_bursts)
 //End MP1 Additions
+//MP2 Additions
+SYSCALL(thread_create)
+SYSCALL(thread_join)
+SYSCALL(mtx_create)
+SYSCALL(mtx_lock)
+SYSCALL(mtx_unlock)
+//End mp2 additions

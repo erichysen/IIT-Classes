@@ -21,6 +21,7 @@ initlock(struct spinlock *lk, char *name)
 // Loops (spins) until the lock is acquired.
 // Holding a lock for a long time may cause
 // other CPUs to waste time spinning to acquire it.
+
 void
 acquire(struct spinlock *lk)
 {
@@ -39,7 +40,9 @@ acquire(struct spinlock *lk)
   getcallerpcs(&lk, lk->pcs);
 }
 
+
 // Release the lock.
+
 void
 release(struct spinlock *lk)
 {
@@ -87,6 +90,50 @@ holding(struct spinlock *lock)
 {
   return lock->locked && lock->cpu == cpu;
 }
+
+//MP2 additions
+
+void l_acquire (struct spinlock *lk) //keeps interrupts
+{
+	//mtx lock
+//	  pushcli(); // disable interrupts to avoid deadlock.
+  if(holding(lk))
+    panic("acquire");
+
+  // The xchg is atomic.
+  // It also serializes, so that reads after acquire are not
+  // reordered before it. 
+  while(xchg(&lk->locked, 1) != 0)
+    ;
+
+  // Record info about lock acquisition for debugging.
+  lk->cpu = cpu;
+  getcallerpcs(&lk, lk->pcs);
+}
+
+void l_release (struct spinlock *lk) //keeps interrupts
+{
+	//mtx unlock
+	if(!holding(lk))
+    panic("release");
+
+  lk->pcs[0] = 0;
+  lk->cpu = 0;
+
+  // The xchg serializes, so that reads before release are 
+  // not reordered after it.  The 1996 PentiumPro manual (Volume 3,
+  // 7.2) says reads can be carried out speculatively and in
+  // any order, which implies we need to serialize here.
+  // But the 2007 Intel 64 Architecture Memory Ordering White
+  // Paper says that Intel 64 and IA-32 will not move a load
+  // after a store. So lock->locked = 0 would work here.
+  // The xchg being asm volatile ensures gcc emits it after
+  // the above assignments (and after the critical section).
+  xchg(&lk->locked, 0);
+
+  //popcli(); keep interrupts
+}
+//End MP2 additions
 
 
 // Pushcli/popcli are like cli/sti except that they are matched:

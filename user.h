@@ -27,6 +27,13 @@ int start_burst(void);
 int end_burst(void);
 int print_bursts(void);
 //End MP1 Additions
+//MP2 Additions
+int thread_create(void(*tmain)(void *),void *stack,void *arg);
+int thread_join(void **stack);
+int mtx_create(int locked);
+int mtx_lock(int lock_id);
+int mtx_unlock(int lock_id);
+//MP2 end
 
 // ulib.c
 int stat(char*, struct stat*);

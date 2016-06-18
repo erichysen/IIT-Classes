@@ -71,6 +71,7 @@ struct proc {
   int index;                   //location of bursts in burst_array
   int initial_burst;           //stores initial burst_array
   int turn_burst;              //store burst when process starts for turnaround time
+  int thread;                  // if >0, process is a thread.
   //end mp1 additions
 };
 

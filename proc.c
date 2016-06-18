@@ -11,8 +11,10 @@ struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
-
+#define NUM_LOCKS 100
 static struct proc *initproc;
+struct spinlock mutex[NUM_LOCKS];
+int mi =0;  
 
 int nextpid = 1;
 extern void forkret(void);
@@ -134,6 +136,7 @@ growproc(int n)
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
+
 int
 fork(void)
 {
@@ -211,15 +214,122 @@ exit(void)
   sched();
   panic("zombie exit");
 }
+//create a thread
+int 
+thread_create(void(*tmain)(void *),void *stack, void*arg)
+{
+	uint size = 1024;
+	int i;
+	struct proc *tp; 
+	int pid;
+	//int mem_array[size];  //stack mapping
+	uint stackpoint = size+(uint)stack;
+	uint* thread_stack = (uint *)stack;
+	// Allocate process.
+    if((tp = allocproc()) == 0) return -1;
+	/*
+	-the newly created process will share the address space of its parent and will therefore have automatic access to all of its parent's code and data segments
+	*/
+    tp->pgdir = proc->pgdir; //copy page table to thread proc
+	tp->sz = proc->sz;
+	tp->parent = proc;
+	*tp->tf = *proc->tf;
+	tp->parent->thread++; //inc thread count (also distinguish between thread proc >0 and normal proc =0)
+	
+	tp->tf->esp = stackpoint;
+	tp->tf->ebp = (uint)thread_stack +4; //+4 is the most annoying thing to forget...
+	tp->tf->eip = (uint)(tmain);
+	// Clear %eax so that fork returns 0 in the child.
+	tp->tf->eax = 0;
 
+	for(i = 0; i < NOFILE; i++)
+		if(proc->ofile[i])
+			tp->ofile[i] = filedup(proc->ofile[i]);
+		tp->cwd = idup(proc->cwd);
+ 
+	pid = tp->pid;
+	tp->state = RUNNABLE;
+	safestrcpy(tp->name, proc->name, sizeof(proc->name));
+	return pid;
+}
+int  //similar to wait, doesn't free mem
+thread_join(void **stack)
+{
+	int pid, havekids;
+	struct proc *p;
+	acquire(&ptable.lock);
+	for(;;)
+	{
+		// Scan through table looking for zombie children.
+
+		havekids =0;
+		for(p =ptable.proc ; p <&ptable.proc[NPROC]; p++)
+		{
+			if(p->parent != proc && p->thread) continue; //thread >0
+			havekids =1;
+			if(p->state == ZOMBIE)
+			{
+				// Found one.
+				pid = p->pid;
+				//kfree(p->kstack);
+				p->kstack = 0;
+				//freevm(p->pgdir); //don't free mem b/c shared mem in thread, free could cause errors
+				p->state = UNUSED;
+				p->pid = 0;
+				p->parent = 0;
+				p->name[0] = 0;
+				p->killed = 0;
+				proc->thread--;
+				release(&ptable.lock);
+				return pid;
+			}
+		}
+	 // No point waiting if we don't have any children.
+		if(!havekids || proc->killed){
+			release(&ptable.lock);
+			return -1;
+		}
+
+		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
+		sleep(proc, &ptable.lock);  //DOC: wait-sleep
+	}
+}
+
+int 
+mtx_create(int locked)
+{
+	if(mi < NUM_LOCKS) { //
+		initlock(&mutex[mi],"mutex lock"); //inits lock to locked state;
+		if(locked)
+		{
+			mtx_lock(mi);
+		}
+		return(mi++);
+	}
+	return -1;
+}
+int
+mtx_lock(int lock_id)
+{
+	if(lock_id>0 || lock_id < mi) l_acquire(&mutex[lock_id]);
+	else return -1;
+	return 0;
+}
+int
+mtx_unlock(int lock_id)
+{
+	if(lock_id > 0 || lock_id < NUM_LOCKS) l_release(&mutex[lock_id]);
+	else return -1;
+	return 0;
+}
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
+
 int
 wait(void)
 {
   struct proc *p;
   int havekids, pid;
-
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for zombie children.
@@ -243,7 +353,6 @@ wait(void)
         return pid;
       }
     }
-
     // No point waiting if we don't have any children.
     if(!havekids || proc->killed){
       release(&ptable.lock);

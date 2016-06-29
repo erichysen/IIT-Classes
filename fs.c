@@ -356,7 +356,9 @@ iunlockput(struct inode *ip)
 static uint
 bmap(struct inode *ip, uint bn)
 {
-  uint addr, *a;
+//MP4 Changes
+
+  /*uint addr, *a;
   struct buf *bp;
 
   if(bn < NDIRECT){
@@ -378,8 +380,63 @@ bmap(struct inode *ip, uint bn)
     }
     brelse(bp);
     return addr;
-  }
+  }*/
 
+  uint addr, *a, bnum, sbp;
+  struct buf *bp;
+  //First level, 10 Direct
+  if(bn < NDIRECT){
+    if((addr = ip->addrs[bn]) == 0)
+      ip->addrs[bn] = addr = balloc(ip->dev);
+    return addr;
+  }
+  bn -= NDIRECT;
+  // 2nd Level, 10Direct + 2*Indirect(128) = 266
+  if(bn < 2*NINDIRECT)
+  {
+    //Pointer to single indirect block
+	sbp = NDIRECT + (bn/NINDIRECT);
+	bnum = bn%NINDIRECT;  //single indirect block nmber
+	
+    if((addr = ip->addrs[sbp]) == 0)  //load indirect block
+      ip->addrs[sbp] = addr = balloc(ip->dev);
+    
+	bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    
+	if((addr = a[bnum]) == 0)
+	{
+      a[bnum] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    return addr;
+  }
+  bn -= NINDIRECT*2;
+
+  // Third Level Double indirect: 10 Direct +2*Indirect + 1*Indirect^2 = 16650*512kb = max file size
+  if(bn < NINDIRECT*NINDIRECT){
+        // Load 2nd indirect block, allocating if necessary.
+        if((addr = ip->addrs[NDIRECT+1]) == 0)
+          ip->addrs[NDIRECT+1] = addr = balloc(ip->dev);
+
+        bp = bread(ip->dev, addr);
+        a = (uint*)bp->data;
+        if ((addr = a[bn/(NINDIRECT)]) == 0) { 
+              a[bn/(NINDIRECT)] = addr = balloc(ip->dev); 
+              log_write(bp);
+          }
+          brelse(bp);
+        bp = bread(ip->dev, addr);
+        a = (uint*)bp->data;
+         if ((addr = a[bn%(NINDIRECT)]) == 0) { //2nd indirect
+              a[bn%(NINDIRECT)] = addr = balloc(ip->dev);
+              log_write(bp);
+          }
+        brelse(bp);
+        return addr;
+    }
+//END MP4 Changes
   panic("bmap: out of range");
 }
 

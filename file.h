@@ -21,7 +21,10 @@ struct inode {
   short minor;
   short nlink;
   uint size;
-  uint addrs[NDIRECT+1];
+//MP4 Changes
+  //uint addrs[NDIRECT+1];
+  uint addrs[NDIRECT+3];
+//END MP4 Changes
 };
 #define I_BUSY 0x1
 #define I_VALID 0x2
